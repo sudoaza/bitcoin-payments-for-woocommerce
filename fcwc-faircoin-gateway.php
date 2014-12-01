@@ -481,7 +481,7 @@ $this->service_provider!='blockchain.info'?__('Available when Faircoin service p
 			if (!$exchange_rate)
 			{
 				$msg = 'ERROR: Cannot determine Faircoin exchange rate. Possible issues: store server does not allow outgoing connections, exchange rate servers are blocking incoming connections or down. ' .
-					   'You may avoid that by setting store currency directly to Faircoin(FAIR)';
+					   'You may avoid that by setting store currency directly to Faircoin (F)';
       			FCWC__log_event (__FILE__, __LINE__, $msg);
       			exit ('<h2 style="color:red;">' . $msg . '</h2>');
 			}
@@ -850,7 +850,7 @@ $this->service_provider!='blockchain.info'?__('Available when Faircoin service p
 	//=======================================================================
 	function FCWC__add_fair_currency($currencies)
 	{
-	     $currencies['FAIR'] = __( 'Faircoin (F)', 'woocommerce' );
+	     $currencies['FAIR'] = __( 'Faircoin', 'woocommerce' );
 	     return $currencies;
 	}
 	//=======================================================================
