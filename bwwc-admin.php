@@ -12,6 +12,10 @@ include (dirname(__FILE__) . '/bwwc-include-all.php');
 
 global $g_BWWC__plugin_directory_url;
 $g_BWWC__plugin_directory_url = plugins_url ('', __FILE__);
+
+global $g_BWWC__cron_script_url;
+$g_BWWC__cron_script_url = $g_BWWC__plugin_directory_url . '/bwwc-cron.php';
+
 //===========================================================================
 
 //===========================================================================
@@ -22,7 +26,7 @@ $g_BWWC__config_defaults = array (
    // ------- Hidden constants
 // 'supported_currencies_arr'             =>  array ('USD', 'AUD', 'CAD', 'CHF', 'CNY', 'DKK', 'EUR', 'GBP', 'HKD', 'JPY', 'NZD', 'PLN', 'RUB', 'SEK', 'SGD', 'THB'), // Not used right now.
    'database_schema_version'              =>  1.2,
-   'assigned_address_expires_in_mins'     =>  4*60,   // 6 hours to pay for order and receive necessary number of confirmations.
+   'assigned_address_expires_in_mins'     =>  4*60,   // 4 hours to pay for order and receive necessary number of confirmations.
    'funds_received_value_expires_in_mins' =>  '10',		// 'received_funds_checked_at' is fresh (considered to be a valid value) if it was last checked within 'funds_received_value_expires_in_mins' minutes.
    'starting_index_for_new_btc_addresses' =>  '2',    // Generate new addresses for the wallet starting from this index.
    'max_blockchains_api_failures'         =>  '3',    // Return error after this number of sequential failed attempts to retrieve blockchain data.
@@ -30,8 +34,8 @@ $g_BWWC__config_defaults = array (
    'blockchain_api_timeout_secs'          =>  '20',   // Connection and request timeouts for curl operations dealing with blockchain requests.
    'exchange_rate_api_timeout_secs'       =>  '10',   // Connection and request timeouts for curl operations dealing with exchange rate API requests.
    'soft_cron_job_schedule_name'          =>  'minutes_1',   // WP cron job frequency
-   'delete_expired_unpaid_orders'         =>  true,   // Automatically delete expired, unpaid orders from WooCommerce->Orders database
-   'reuse_expired_addresses'              =>  true,   // True - may reduce anonymouty of store customers (someone may click/generate bunch of fake orders to list many addresses that in a future will be used by real customers).
+   'delete_expired_unpaid_orders'         =>  '1',   // Automatically delete expired, unpaid orders from WooCommerce->Orders database
+   'reuse_expired_addresses'              =>  '1',   // True - may reduce anonymouty of store customers (someone may click/generate bunch of fake orders to list many addresses that in a future will be used by real customers).
                                                       // False - better anonymouty but may leave many addresses in wallet unused (and hence will require very high 'gap limit') due to many unpaid order clicks.
                                                       //        In this case it is recommended to regenerate new wallet after 'gap limit' reaches 1000.
    'max_unused_addresses_buffer'          =>  10,     // Do not pre-generate more than these number of unused addresses. Pregeneration is done only by hard cron job or manually at plugin settings.
@@ -54,15 +58,29 @@ $g_BWWC__config_defaults = array (
 //===========================================================================
 
 //===========================================================================
-function BWWC__GetPluginNameVersionEdition()
+function BWWC__GetPluginNameVersionEdition($please_donate = true)
 {
-   return '<h2 style="border-bottom:1px solid #DDD;padding-bottom:10px;margin-bottom:20px;">' .
+  $return_data = '<h2 style="border-bottom:1px solid #DDD;padding-bottom:10px;margin-bottom:20px;">' .
             BWWC_PLUGIN_NAME . ', version: <span style="color:#EE0000;">' .
             BWWC_VERSION. '</span> [<span style="color:#EE0000;background-color:#FFFF77;">&nbsp;' .
             BWWC_EDITION . '&nbsp;</span> edition]' .
-          '</h2>'
-          . '<p style="border:1px solid #890e4e;padding:5px 10px;color:#004400;background-color:#FFF;"><u>Please donate BTC to</u>:&nbsp;&nbsp;<span style="color:#d21577;font-size:110%;font-weight:bold;">12fFTMkeu3mcunCtGHtWb7o5BcWA9eFx7R</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<u>or via Paypal to</u>:&nbsp;&nbsp;<span style="color:#d21577;font-size:110%;font-weight:bold;">donate@bitcoinway.com</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-size:95%;">(All supporters will be acknowledged and listed within plugin repository)</span></p>'
-          ;
+          '</h2>';
+
+
+  if ($please_donate)
+  {
+    $return_data .= '<p style="border:1px solid #890e4e;padding:5px 10px;color:#004400;background-color:#FFF;"><u>Please donate BTC to</u>:&nbsp;&nbsp;<span style="color:#d21577;font-size:110%;font-weight:bold;">12fFTMkeu3mcunCtGHtWb7o5BcWA9eFx7R</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<u>or via Paypal to</u>:&nbsp;&nbsp;<span style="color:#d21577;font-size:110%;font-weight:bold;">donate@bitcoinway.com</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-size:95%;">All supporters will be acknowledged and listed within plugin repository. Please note that if you ever donated - you may use your donation as a credit toward <a href="' . BWWC__GetProUrl() . '"><b>Pro version</b></a>.</span></p>';
+  }
+
+  return $return_data;
+}
+//===========================================================================
+
+//===========================================================================
+function BWWC__GetProUrl() { return 'http://bitcoinway.com/products/'; }
+function BWWC__GetProLabel()
+{
+   return '<span style="background-color:#FF4;color:#F44;border:1px solid #F44;padding:2px 6px;font-family:\'Open Sans\',sans-serif;font-size:14px;border-radius:6px;"><a href="' . BWWC__GetProUrl() . '">PRO Only</a></span>';
 }
 //===========================================================================
 

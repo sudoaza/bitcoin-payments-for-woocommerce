@@ -148,6 +148,35 @@ function BWWC__plugins_loaded__load_bitcoin_gateway ()
 	    	//----------------------------------
 
 	    	//----------------------------------
+	    	// Validate connection to exchange rate services
+
+	   		$store_currency_code = get_woocommerce_currency();
+	   		if ($store_currency_code != 'BTC')
+	   		{
+					$currency_rate = BWWC__get_exchange_rate_per_bitcoin ($store_currency_code, 'getfirst', 'bestrate', false);
+					if (!$currency_rate)
+					{
+						$valid = false;
+
+						// Assemble error message.
+						$error_msg = "ERROR: Cannot determine exchange rates (for '$store_currency_code')! {{{ERROR_MESSAGE}}} Make sure your PHP settings are configured properly and your server can (is allowed to) connect to external WEB services via PHP.";
+						$extra_error_message = "";
+						$fns = array ('file_get_contents', 'curl_init', 'curl_setopt', 'curl_setopt_array', 'curl_exec');
+						$fns = array_filter ($fns, 'BWWC__function_not_exists');
+						$extra_error_message = "";
+						if (count($fns))
+							$extra_error_message = "The following PHP functions are disabled on your server: " . implode (", ", $fns) . ".";
+
+						$reason_message = str_replace('{{{ERROR_MESSAGE}}}', $extra_error_message, $error_msg);
+
+		    		if ($ret_reason_message !== NULL)
+		    			$ret_reason_message = $reason_message;
+		    		return false;
+					}
+				}
+	    	//----------------------------------
+
+	    	//----------------------------------
 	    	// NOTE: currenly this check is not performed.
 				//  		Do not limit support with present list of currencies. This was originally created because exchange rate APIs did not support many, but today
 				//			they do support many more currencies, hence this check is removed for now.
@@ -274,7 +303,7 @@ function BWWC__plugins_loaded__load_bitcoin_gateway ()
 								'options' => array(
 									''  => __( 'Please choose your provider', 'woocommerce' ),
 									'electrum-wallet'  => __( 'Your own Electrum wallet', 'woocommerce' ),
-									'blockchain.info' => __( 'Blockchain.info API', 'woocommerce' ),
+									'blockchain.info' => __( 'Blockchain.info API (deprecated - use Electrum instead)', 'woocommerce' ),
 									),
 								'default' => '',
 								'description' => $this->service_provider?__("Please select your Bitcoin service provider and press [Save changes]. Then fill-in necessary details and press [Save changes] again.<br />Recommended setting: <b>Your own Electrum wallet</b>", 'woocommerce'):__("Recommended setting: 'Your own Electrum wallet'. <a href='http://electrum.org/' target='_blank'>Free download of Electrum wallet here</a>.", 'woocommerce'),

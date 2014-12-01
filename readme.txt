@@ -3,7 +3,7 @@ Contributors: gesman, bitcoinway.com
 Donate link: http://www.bitcoinway.com/donate/
 Tags: bitcoin, bitcoin wordpress plugin, bitcoin plugin, bitcoin payments, accept bitcoin, bitcoins
 Requires at least: 3.0.1
-Tested up to: 3.9
+Tested up to: 4.0
 Stable tag: trunk
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -18,22 +18,41 @@ Once you installed and activated WooCommerce, you may install and activate Bitco
 
 = Benefits =
 
-* Accept payment directly into your personal Electrum wallet.
+* Fully automatic operation
+* 100% hack secure - by design it is impossible for hacker to steal your bitcoins even if your whole server and database will be hacked.
+* 100% safe against losses - no private keys are required or kept anywhere at your online store server.
+* Accept payments in bitcoins directly into your personal Electrum wallet.
 * Electrum wallet payment option completely removes dependency on any third party service and middlemen.
 * Accept payment in bitcoins for physical and digital downloadable products.
 * Add bitcoin payments option to your existing online store with alternative main currency.
 * Flexible exchange rate calculations fully managed via administrative settings.
 * Zero fees and no commissions for bitcoin payments processing from any third party.
-* Support 16 different currencies.
-* Set main currency of your store in any of 16 currencies or bitcoin.
+* Support for many currencies.
+* Set main currency of your store in any currency or bitcoin.
 * Automatic conversion to bitcoin via realtime exchange rate feed and calculations.
 * Ability to set exchange rate calculation multiplier to compensate for any possible losses due to bank conversions and funds transfer fees.
+* Please donate BTC to help development here: 12fFTMkeu3mcunCtGHtWb7o5BcWA9eFx7R
 
 
 == Installation ==
 
-1. Install "Bitcoin Payments for WooCommerce" wordpress plugin just like any other Wordpress plugin.
-2. Activate.
+
+1.  Install WooCommerce plugin and configure your store (if you haven't done so already - http://wordpress.org/plugins/woocommerce/).
+2.  Install "Bitcoin Payments for WooCommerce" wordpress plugin just like any other Wordpress plugin.
+3.  Activate.
+4.  Download and install on your computer Electrum wallet program from here: https://electrum.org/
+5.  Run and setup your wallet.
+6.  Click on "Console" tab and run this command (to extend the size of wallet's gap limit): wallet.storage.put('gap_limit',100)
+7.  Grab your wallet's Master Public Key by navigating to:
+	    Wallet -> Master Public Key, or (for older versions of Electrum): Preferences -> Import/Export -> Master Public Key -> Show
+8.  Within your site's Wordpress admin, navigate to:
+	    WooCommerce -> Settings -> Checkout -> Bitcoin
+	    and paste the value of Master Public Key into "Electrum wallet's Master Public Key" field.
+9.  Select "Bitcoin service provider" = "Your own Electrum wallet" and fill-in other settings at Bitcoin management panel.
+10. Press [Save changes]
+11. If you do not see any errors - your store is ready for operation and to access payments in bitcoins!
+12. Please donate BTC to:  12fFTMkeu3mcunCtGHtWb7o5BcWA9eFx7R  or via Paypal to:  donate@bitcoinway.com
+    All supporters will be acknowledged and listed within plugin repository!
 
 
 == Screenshots ==
@@ -62,6 +81,19 @@ Once you installed and activated WooCommerce, you may install and activate Bitco
 
 
 == Changelog ==
+
+= 3.12 =
+* Fixed "Unable to determine exchange rate error"
+
+= 3.10 =
+* Added detailed help for managing hard cron jobs within settings. Improved interface of admin settings area.
+
+= 3.04 =
+* Fixed 'cannot determine exchange rates' error for certain rare currencies.
+
+= 3.03 =
+* Added validation of connection to BTC exchange rate services in setup screen to prevent running store with disabled internet connections or essential PHP functions disabled.
+* Installation instructions updated within this file.
 
 = 3.02 =
 * Upgraded to support WooCommerce 2.1+

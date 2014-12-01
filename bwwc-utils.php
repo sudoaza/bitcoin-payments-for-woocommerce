@@ -598,7 +598,8 @@ Realtime:
 	$current_time  = time();
 	$cache_hit     = false;
 	$requested_cache_method_type = $rate_retrieval_method . '|' . $rate_type;
-	$ticker_string = "<span style='color:darkgreen;'>Current Rates for 1 Bitcoin (according to settings) (in {$currency_code})={{{EXCHANGE_RATE}}}</span>";
+	$ticker_string = "<span style='color:darkgreen;'>Current Rates for 1 Bitcoin (in {$currency_code})={{{EXCHANGE_RATE}}}</span>";
+	$ticker_string_error = "<span style='color:red;background-color:#FFA'>WARNING: Cannot determine exchange rates (for '$currency_code')! {{{ERROR_MESSAGE}}} Make sure your PHP settings are configured properly and your server can (is allowed to) connect to external WEB services via PHP.</span>";
 
 
 	$this_currency_info = @$bwwc_settings['exchange_rates'][$currency_code][$requested_cache_method_type];
@@ -631,9 +632,15 @@ Realtime:
 		if ($rate_type == 'bestrate')
 			$rates[] = BWWC__get_exchange_rate_from_bitpay ($currency_code, $rate_type, $bwwc_settings);		   // Requested bestrate
 
-		$exchange_rate = min(array_filter ($rates));
-  	// Save new currency exchange rate info in cache
- 		BWWC__update_exchange_rate_cache ($currency_code, $requested_cache_method_type, $exchange_rate);
+		$rates = array_filter ($rates);
+		if (count($rates) && $rates[0])
+		{
+			$exchange_rate = min($rates);
+  		// Save new currency exchange rate info in cache
+ 			BWWC__update_exchange_rate_cache ($currency_code, $requested_cache_method_type, $exchange_rate);
+ 		}
+ 		else
+ 			$exchange_rate = false;
  	}
  	else
  	{
@@ -644,18 +651,42 @@ Realtime:
  		else
 			$rates[] = BWWC__get_exchange_rate_from_bitpay ($currency_code, $rate_type, $bwwc_settings);		   // Requested bestrate
 
-		$exchange_rate = min(array_filter ($rates));
-		if ($exchange_rate)	// If array contained only meaningless data (all 'false's)
-	 		BWWC__update_exchange_rate_cache ($currency_code, $requested_cache_method_type, $exchange_rate);
+		$rates = array_filter ($rates);
+		if (count($rates) && $rates[0])
+		{
+			$exchange_rate = min($rates);
+  		// Save new currency exchange rate info in cache
+ 			BWWC__update_exchange_rate_cache ($currency_code, $requested_cache_method_type, $exchange_rate);
+ 		}
+ 		else
+ 			$exchange_rate = false;
  	}
 
 
 	if ($get_ticker_string)
-		return str_replace('{{{EXCHANGE_RATE}}}', $exchange_rate, $ticker_string);
+	{
+		if ($exchange_rate)
+			return str_replace('{{{EXCHANGE_RATE}}}', $exchange_rate, $ticker_string);
+		else
+		{
+			$extra_error_message = "";
+			$fns = array ('file_get_contents', 'curl_init', 'curl_setopt', 'curl_setopt_array', 'curl_exec');
+			$fns = array_filter ($fns, 'BWWC__function_not_exists');
+
+			if (count($fns))
+				$extra_error_message = "The following PHP functions are disabled on your server: " . implode (", ", $fns) . ".";
+
+			return str_replace('{{{ERROR_MESSAGE}}}', $extra_error_message, $ticker_string_error);
+		}
+	}
 	else
 		return $exchange_rate;
 
 }
+//===========================================================================
+
+//===========================================================================
+function BWWC__function_not_exists ($fname) { return !function_exists($fname); }
 //===========================================================================
 
 //===========================================================================
@@ -677,15 +708,25 @@ function BWWC__get_exchange_rate_from_bitcoinaverage ($currency_code, $rate_type
 	$source_url	=	"https://api.bitcoinaverage.com/ticker/global/{$currency_code}/";
 	$result = @BWWC__file_get_contents ($source_url, false, $bwwc_settings['exchange_rate_api_timeout_secs']);
 
-	$rate_obj = json_decode(trim($result), true);
+	$rate_obj = @json_decode(trim($result), true);
 
+	if (!is_array($rate_obj))
+		return false;
+
+
+	if (@$rate_obj['24h_avg'])
+		$rate_24h_avg = @$rate_obj['24h_avg'];
+	else if (@$rate_obj['last'] && @$rate_obj['ask'] && @$rate_obj['bid'])
+		$rate_24h_avg = ($rate_obj['last'] + $rate_obj['ask'] + $rate_obj['bid']) / 3;
+	else
+		$rate_24h_avg = @$rate_obj['last'];
 
 	switch ($rate_type)
 	{
-		case 'vwap'	:				return @$rate_obj['24h_avg'];
+		case 'vwap'	:				return $rate_24h_avg;
 		case 'realtime'	:		return @$rate_obj['last'];
 		case 'bestrate'	:
-		default:						return min (@$rate_obj['24h_avg'], @$rate_obj['last']);
+		default:						return min ($rate_24h_avg, @$rate_obj['last']);
 	}
 }
 //===========================================================================
@@ -697,7 +738,7 @@ function BWWC__get_exchange_rate_from_bitcoincharts ($currency_code, $rate_type,
 	$source_url	=	"http://api.bitcoincharts.com/v1/weighted_prices.json";
 	$result = @BWWC__file_get_contents ($source_url, false, $bwwc_settings['exchange_rate_api_timeout_secs']);
 
-	$rate_obj = json_decode(trim($result), true);
+	$rate_obj = @json_decode(trim($result), true);
 
 
 	// Only vwap rate is available
@@ -712,7 +753,9 @@ function BWWC__get_exchange_rate_from_bitpay ($currency_code, $rate_type, $bwwc_
 	$source_url	=	"https://bitpay.com/api/rates";
 	$result = @BWWC__file_get_contents ($source_url, false, $bwwc_settings['exchange_rate_api_timeout_secs']);
 
-	$rate_objs = json_decode(trim($result), true);
+	$rate_objs = @json_decode(trim($result), true);
+	if (!is_array($rate_objs))
+		return false;
 
 	foreach ($rate_objs as $rate_obj)
 	{
@@ -737,9 +780,12 @@ function BWWC__get_exchange_rate_from_bitpay ($currency_code, $rate_type, $bwwc_
 */
 function BWWC__file_get_contents ($url, $return_content_on_error=false, $timeout=60, $user_agent=FALSE)
 {
+
    if (!function_exists('curl_init'))
       {
-      return @file_get_contents ($url);
+      $ret_val = @file_get_contents ($url);
+
+			return $ret_val;
       }
 
    $options = array(
@@ -754,6 +800,7 @@ function BWWC__file_get_contents ($url, $return_content_on_error=false, $timeout
       CURLOPT_TIMEOUT        => $timeout,       // timeout on response in seconds.
       CURLOPT_FOLLOWLOCATION => true,     // follow redirects
       CURLOPT_MAXREDIRS      => 10,       // stop after 10 redirects
+      CURLOPT_SSL_VERIFYPEER => false,    // Disable SSL verification
       );
 
    $ch      = curl_init   ();
@@ -775,12 +822,14 @@ function BWWC__file_get_contents ($url, $return_content_on_error=false, $timeout
       curl_setopt ($ch, CURLOPT_TIMEOUT        , $timeout);       // timeout on response in seconds.
       curl_setopt ($ch, CURLOPT_FOLLOWLOCATION , true);     // follow redirects
       curl_setopt ($ch, CURLOPT_MAXREDIRS      , 10);       // stop after 10 redirects
+      curl_setopt($ch, CURLOPT_SSL_VERIFYPEER  , false);    // Disable SSL verifications
       }
 
    $content = curl_exec   ($ch);
    $err     = curl_errno  ($ch);
    $header  = curl_getinfo($ch);
    // $errmsg  = curl_error  ($ch);
+
 
    curl_close             ($ch);
 
